@@ -2,3 +2,7 @@
 /models/chinese-clip-vit-base-patch16/
 /测试图片[123].png
 __pycache__/
+/data/*.local.json
+/uploads/
+/static/demo.png
+/static/测试图片[123].png

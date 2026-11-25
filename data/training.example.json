@@ -1,0 +1,14 @@
+{
+  "groups": [
+    {"object_id": "umbrella-a", "split": "train", "found_item_ids": [101, 102]},
+    {"object_id": "umbrella-b", "split": "train", "found_item_ids": [103]},
+    {"object_id": "bottle-a", "split": "test", "found_item_ids": [104]},
+    {"object_id": "bottle-b", "split": "test", "found_item_ids": [105]}
+  ],
+  "queries": [
+    {"object_id": "umbrella-a", "query": "黑色折叠伞，伞柄有白色挂绳", "lost_on": "2026-11-25", "lost_area": "主教 214 讲台处"},
+    {"object_id": "umbrella-b", "query": "一把深色小伞，伞柄是弯的", "lost_on": null, "lost_area": "主教 215"},
+    {"object_id": "bottle-a", "query": "蓝色水杯，瓶盖上有提环", "lost_on": "2026-11-25", "lost_area": "图书馆"},
+    {"object_id": "bottle-b", "query": "深蓝水壶，瓶身有贴纸", "lost_on": null, "lost_area": null}
+  ]
+}

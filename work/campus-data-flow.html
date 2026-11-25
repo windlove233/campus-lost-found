@@ -1,0 +1,128 @@
+<div id="campus-data-flow">
+  <style>
+    #campus-data-flow .flow-section, #campus-data-flow .flow-list { display: grid; gap: calc(var(--font-size-base) * .75); }
+    #campus-data-flow .flow-branches { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--font-size-base); }
+    #campus-data-flow .flow-two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    #campus-data-flow .flow-list { padding: 0; margin: 0; list-style: none; }
+    #campus-data-flow .flow-list > li { display: grid; gap: calc(var(--font-size-base) * .28); overflow-wrap: anywhere; }
+    #campus-data-flow .flow-path > li + li::before { content: '↓'; color: var(--muted-foreground); }
+    #campus-data-flow .flow-title { font-weight: 500; }
+    #campus-data-flow .flow-label { color: var(--muted-foreground); }
+    #campus-data-flow .flow-panel { margin-top: var(--font-size-base); }
+    #campus-data-flow .flow-heading { padding-right: calc(var(--font-size-base) * 5); margin-bottom: calc(var(--font-size-base) * .5); }
+    #campus-data-flow code { white-space: normal; overflow-wrap: anywhere; }
+    #campus-data-flow hr { margin: 0; }
+    @media (max-width: 580px) {
+      #campus-data-flow .flow-branches { grid-template-columns: minmax(0, 1fr); }
+    }
+  </style>
+
+  <h2 class="flow-heading">失物招领数据流</h2>
+  <div class="nav nav-pills" role="tablist" aria-label="选择要查看的数据流">
+    <button class="nav-link active" id="cdf-overview-tab" type="button" role="tab" aria-selected="true" aria-controls="cdf-overview">全链路</button>
+    <button class="nav-link" id="cdf-publish-tab" type="button" role="tab" aria-selected="false" aria-controls="cdf-publish">发布照片</button>
+    <button class="nav-link" id="cdf-search-tab" type="button" role="tab" aria-selected="false" aria-controls="cdf-search">搜索与取图</button>
+    <button class="nav-link" id="cdf-helpers-tab" type="button" role="tab" aria-selected="false" aria-controls="cdf-helpers">共用函数与终端</button>
+  </div>
+
+  <section class="flow-panel flow-section" id="cdf-overview" role="tabpanel" aria-labelledby="cdf-overview-tab">
+    <div class="flow-branches">
+      <section class="flow-section" aria-label="发布数据流">
+        <h3>发布照片</h3>
+        <ol class="flow-list flow-path">
+          <li><span class="flow-title">浏览器 → 发布路由</span><code>POST /publish</code><span><code>photo</code> 文件、<code>found_on</code> 日期、<code>found_area</code> 地点原文</span></li>
+          <li><span class="flow-title">发布函数 → 两处保存</span><span>硬盘收 JPEG。MySQL 收文件名、日期、地点、EXIF JSON 和图片向量。</span></li>
+          <li><span class="flow-title">MySQL → 浏览器</span><span>生成 <code>item_id</code>，发布页显示物品编号和照片线索。</span></li>
+        </ol>
+      </section>
+      <section class="flow-section" aria-label="搜索数据流">
+        <h3>搜索物品</h3>
+        <ol class="flow-list flow-path">
+          <li><span class="flow-title">浏览器 → 搜索路由</span><code>GET /?q=黑色雨伞</code><span>请求字段是 <code>q</code>，Python 里叫 <code>query</code>。</span></li>
+          <li><span class="flow-title">查询 + MySQL 候选 → 排序</span><span>一句描述生成文字向量，与每件物品已有的图片向量算相似度。</span></li>
+          <li><span class="flow-title">排序 → 浏览器</span><span>返回最多 3 项，每项显示 <code>id</code>、分数、日期和地点，并生成照片地址。</span></li>
+        </ol>
+      </section>
+      <section class="flow-section" aria-label="图片读取数据流">
+        <h3>加载照片</h3>
+        <ol class="flow-list flow-path">
+          <li><span class="flow-title">浏览器 → 照片路由</span><code>GET /found-photos/3</code><span>地址里的 <code>3</code> 传给 <code>item_id</code>。</span></li>
+          <li><span class="flow-title">物品编号 → MySQL</span><span>用 <code>id = 3</code> 查出 <code>photo_name</code>。</span></li>
+          <li><span class="flow-title">硬盘 → 浏览器</span><span>用文件名从 <code>uploads/</code> 读取 JPEG 字节，显示成图片。</span></li>
+        </ol>
+      </section>
+    </div>
+    <hr>
+    <div class="flow-branches flow-two">
+      <div><strong class="flow-title">MySQL</strong> · 物品编号、照片文件名、填写信息、线索和向量</div>
+      <div><strong class="flow-title">本机 <code>uploads/</code></strong> · 真正的图片文件</div>
+    </div>
+  </section>
+
+  <section class="flow-panel flow-section" id="cdf-publish" role="tabpanel" aria-labelledby="cdf-publish-tab" hidden>
+    <ol class="flow-list flow-path">
+      <li>
+        <span class="flow-title">浏览器 → <code>publish_page()</code></span>
+        <span><code>GET /publish</code> → 返回空白 <code>publish.html</code> 表单。</span>
+        <span><code>POST /publish</code> → <code>request.files["photo"]</code> 接文件。<code>request.form</code> 接 <code>found_on</code> 和 <code>found_area</code>。</span>
+      </li>
+      <li>
+        <span class="flow-title"><code>publish_page()</code> → <code>publish_found_item(image, found_on=…, found_area=…)</code></span>
+        <span>文件打开成 Pillow <code>Image</code>。日期由字符串转为 <code>date</code>，地点去掉首尾空格。空日期和空地点传 <code>None</code>。</span>
+        <span class="flow-label">缺照片、无效日期、地点超长、照片读写失败 → HTTP 400。数据库写入失败 → HTTP 500。</span>
+      </li>
+      <li>
+        <span class="flow-title"><code>publish_found_item()</code> 从照片得到三份数据</span>
+        <div class="flow-branches">
+          <div><code>read_photo_metadata(image)</code><br>→ <code>PhotoMetadata(captured_at, latitude, longitude)</code> → 转成 <code>photo_clues</code> 字典</div>
+          <div><code>encode_image(clean_image)</code><br>→ 512 维归一化 <code>float32</code> → 2048 字节 <code>image_embedding</code></div>
+          <div>旋转校正并转成 RGB<br>→ 用随机文件名写入 <code>uploads/&lt;UUID&gt;.jpg</code> → <code>photo_name</code></div>
+        </div>
+      </li>
+      <li>
+        <span class="flow-title"><code>insert_found_item(photo_name, photo_clues, embedding, found_on=…, found_area=…)</code> → MySQL</span>
+        <span><code>connect_db()</code> 打开连接。<code>INSERT</code> 保存 <code>photo_name</code>、<code>photo_clues</code>（JSON）、<code>image_embedding</code>、<code>found_on</code>（DATE 或 NULL）、<code>found_area</code>（原文或 NULL）。</span>
+        <span><code>commit()</code> 提交，<code>cursor.lastrowid</code> → 整数 <code>item_id</code>。</span>
+      </li>
+      <li>
+        <span class="flow-title"><code>publish_found_item()</code> → <code>publish_page()</code> → Jinja 模板</span>
+        <span>函数返回 <code>(item_id, metadata)</code>。<code>render_template("publish.html", item_id=…, metadata=…)</code> → 编号、拍摄时间及 GPS 有无。</span>
+        <span class="flow-label">照片拍摄时间在 <code>photo_clues.captured_at</code>。学生填写的拾取日期在 <code>found_on</code>。</span>
+      </li>
+    </ol>
+  </section>
+
+  <section class="flow-panel flow-section" id="cdf-search" role="tabpanel" aria-labelledby="cdf-search-tab" hidden>
+    <h3>请求一 · 排序结果页面</h3>
+    <ol class="flow-list flow-path">
+      <li><span class="flow-title"><code>GET /?q=…</code> → <code>search_page()</code></span><span><code>request.args.get("q", "").strip()</code> → <code>query</code>。打开空首页时，<code>results = []</code>。</span></li>
+      <li><span class="flow-title"><code>list_found_items()</code> → MySQL → 候选记录</span><span><code>connect_db()</code> → <code>SELECT id, found_on, found_area, image_embedding FROM found_items</code> → 字典列表。</span></li>
+      <li><span class="flow-title"><code>rank_stored_items(query, items)</code> → 匹配分数</span><span><code>encode_text(query)</code> → 512 维文字向量。<code>np.frombuffer(item["image_embedding"], dtype="&lt;f4")</code> → 已存的 512 维图片向量。两者做点积得到 <code>score</code>。</span><span>返回按分数降序的 <code>[(item, score), …]</code>，最多三项。日期与地点随记录返回，当前用于展示。</span></li>
+      <li><span class="flow-title"><code>render_template("search.html", query=…, results=…)</code> → 浏览器</span><span>Jinja 遍历结果，显示 <code>item.id</code>、<code>score</code>、<code>item.found_on</code>、<code>item.found_area</code>。<code>url_for("search.found_photo", item_id=item.id)</code> 生成 <code>&lt;img src&gt;</code>。</span></li>
+    </ol>
+    <hr>
+    <h3>请求二 · 每张照片</h3>
+    <ol class="flow-list flow-path">
+      <li><span class="flow-title"><code>GET /found-photos/3</code> → <code>found_photo(item_id=3)</code></span><span>浏览器读到 <code>&lt;img src&gt;</code> 后单独发出请求。</span></li>
+      <li><span class="flow-title"><code>get_found_photo_name(item_id)</code> → MySQL</span><span><code>SELECT photo_name FROM found_items WHERE id = %s</code> → 文件名或 <code>None</code>。</span></li>
+      <li><span class="flow-title"><code>send_from_directory(UPLOAD_DIR, photo_name)</code> → 浏览器</span><span>返回对应 JPEG 文件。找不到编号或文件时返回 HTTP 404。</span></li>
+    </ol>
+  </section>
+
+  <section class="flow-panel flow-section" id="cdf-helpers" role="tabpanel" aria-labelledby="cdf-helpers-tab" hidden>
+    <h3>共用函数</h3>
+    <ul class="flow-list">
+      <li><span class="flow-title"><code>app.py</code></span><span>创建 Flask 应用，注册 <code>search_bp</code> 和 <code>publish_bp</code>。</span></li>
+      <li><span class="flow-title"><code>connect_db()</code></span><span>读取本机环境变量 <code>CAMPUS_DB_PASSWORD</code>，返回项目 MySQL 连接，供插入和两种查询使用。</span></li>
+      <li><span class="flow-title"><code>load_clip()</code></span><span>无调用参数。读取本地权重和处理器配置 → 返回 <code>(model, processor)</code>。同一个 Flask 进程复用该模型对象。</span></li>
+      <li><span class="flow-title"><code>_capture_time(fields)</code> 与 <code>_coordinate(values, direction, …)</code></span><span>从 EXIF 时间字段得到 ISO 时间字符串，从度分秒和方向得到带正负号的小数经纬度。缺失或无效时返回 <code>None</code>。</span></li>
+    </ul>
+    <hr>
+    <h3>终端演示函数</h3>
+    <ul class="flow-list">
+      <li><span class="flow-title"><code>photo_metadata.py</code> 的 <code>main()</code></span><span>照片路径 → <code>read_photo_metadata(image)</code> → 终端输出 <code>captured_at</code>、<code>latitude</code>、<code>longitude</code> 的 JSON。</span></li>
+      <li><span class="flow-title"><code>chinese_clip_search.py</code> 的 <code>main()</code></span><span><code>--query</code> 和 <code>--images</code> → 枚举照片 → 调用 <code>rank_images()</code> → 终端输出最多三条路径和分数。</span></li>
+      <li><span class="flow-title"><code>rank_images(query, paths, model, processor)</code></span><span>描述和图片文件路径 → 批量计算图文向量 → 返回降序的 <code>[(path, score), …]</code>。<code>search_images(query, folder)</code> 是枚举文件夹、复用模型并取前三的早期网页演示函数。</span></li>
+    </ul>
+  </section>
+</div>

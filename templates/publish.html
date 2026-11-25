@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <title>发布招领</title>
+</head>
+<body>
+    <h1>发布招领</h1>
+
+    <form method="post" enctype="multipart/form-data">
+        <label for="photo">物品照片</label>
+        <input id="photo" name="photo" type="file"
+               accept=".jpg,.jpeg,.png,.webp,.bmp" required>
+        <p>
+    <label for="found_on">拾取日期（选填）</label>
+    <input id="found_on" name="found_on" type="date">
+</p>
+<p>
+    <label for="found_area">拾取地点（选填）</label>
+    <input id="found_area" name="found_area" type="text"
+           maxlength="100" placeholder="例如：主教 214 讲台处">
+</p>
+<button type="submit">发布招领</button>
+    </form>
+
+    {% if error %}
+        <p>{{ error }}</p>
+    {% endif %}
+
+    {% if metadata %}
+        <p>发布成功，物品编号：{{ item_id }}</p>
+        <p>拍摄时间：{{ metadata.captured_at or "未记录" }}</p>
+        <p>GPS：{{ "有记录" if metadata.latitude is not none else "未记录" }}</p>
+    {% endif %}
+
+    <a href="{{ url_for('search.search_page') }}">返回搜索</a>
+</body>
+</html>

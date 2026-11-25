@@ -1,0 +1,40 @@
+<h1>校园失物招领</h1>
+
+<a href="{{ url_for('publish.publish_page') }}">发布招领</a>
+
+<form method="get" action="/">
+    <label for="query">你丢了什么？</label>
+    <input id="query" name="q" value="{{ query }}" required>
+    <p>
+        <label for="lost_on">丢失日期（选填）</label>
+        <input id="lost_on" name="lost_on" type="date" value="{{ lost_on }}">
+    </p>
+    <p>
+        <label for="lost_area">丢失地点（选填）</label>
+        <input id="lost_area" name="lost_area" value="{{ lost_area }}"
+               maxlength="100" placeholder="例如：主教 214 讲台处">
+    </p>
+    <button type="submit">搜索</button>
+</form>
+{% if error %}
+    <p role="alert">{{ error }}</p>
+{% elif query %}
+    <h2>搜索结果</h2>
+    {% if lost_on or lost_area %}
+        <p>当前结果按图文相似度排序。</p>
+    {% endif %}
+    {% for item, score in results %}
+        <figure>
+            <img src="{{ url_for('search.found_photo', item_id=item.id) }}"
+                 alt="物品 {{ item.id }}" width="240">
+            <figcaption>
+                物品编号 {{ item.id }} · 相似度 {{ '%.4f'|format(score) }}
+                <br>
+                拾取地点：{{ item.found_area or "未填写" }}
+                · 拾取日期：{{ item.found_on or "未填写" }}
+            </figcaption>
+        </figure>
+    {% else %}
+        <p>目前还没有已发布的招领物品。</p>
+    {% endfor %}
+{% endif %}
